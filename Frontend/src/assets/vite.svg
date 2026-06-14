@@ -1,31 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
   <defs>
-    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c3aed;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
     </linearGradient>
   </defs>
   
-  <!-- Outer Ring -->
-  <circle cx="50" cy="50" r="46" fill="url(#grad1)" stroke="url(#grad2)" stroke-width="2.5"/>
+  <!-- Background Circle -->
+  <circle cx="50" cy="50" r="48" fill="url(#grad)" stroke="white" stroke-width="2"/>
   
-  <!-- Quill Pen -->
-  <path d="M50 30 L58 50 L62 70 L50 58 L38 70 L42 50 L50 30Z" fill="white" opacity="0.95"/>
+  <!-- Ink Drop / Quill Symbol -->
+  <path d="M50 25 L58 45 L65 65 L50 55 L35 65 L42 45 L50 25Z" fill="white" opacity="0.95"/>
   
-  <!-- Pen Tip -->
-  <path d="M50 30 L48 38 L52 38 Z" fill="#fbbf24"/>
+  <!-- Flowing Lines (Blog/Content symbol) -->
+  <path d="M35 40 L65 40" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>
+  <path d="M38 48 L62 48" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.6"/>
+  <path d="M42 56 L58 56" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
   
-  <!-- Ink Flow -->
-  <path d="M50 58 Q55 62 52 68" stroke="url(#grad2)" stroke-width="2" fill="none" stroke-linecap="round"/>
-  
-  <!-- Text Lines -->
-  <path d="M38 44 L62 44" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
-  <path d="M40 50 L60 50" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
-  
-  <!-- Decorative Elements -->
-  <circle cx="50" cy="44" r="2.5" fill="url(#grad2)" stroke="white" stroke-width="1"/>
+  <!-- Center Dot -->
+  <circle cx="50" cy="45" r="3" fill="url(#grad)" stroke="white" stroke-width="1.5"/>
 </svg>
