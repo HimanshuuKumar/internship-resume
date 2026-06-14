@@ -37,7 +37,7 @@ const useBlogs = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get("http://localhost:4000/api/blogs");
+      const response = await axios.get("https://internship-resume.onrender.com/api/blogs");
 
       if (response.data.success) {
         setBlogs(response.data.blogs);
