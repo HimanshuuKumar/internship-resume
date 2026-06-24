@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Search,
   Heart,
@@ -11,111 +11,61 @@ import {
   BookOpen,
   Share2,
   Bookmark,
+  ChevronRight,
+  Flame,
+  User,
   TrendingUp,
-  Filter,
+  Menu,
   X,
-  PenTool,
+  Filter,
   ArrowRight,
+  Eye,
+  Calendar,
+  Zap,
+  Award,
   Users,
+  PenTool,
 } from "lucide-react";
 
-// ============================================
-// 1. CACHE LAYER
-// ============================================
-const CACHE_KEY = "blogs_cache";
-const CACHE_DURATION = 5 * 60 * 1000;
-
-const getCachedBlogs = () => {
-  try {
-    const cached = localStorage.getItem(CACHE_KEY);
-    if (!cached) return null;
-    const { data, timestamp } = JSON.parse(cached);
-    if (Date.now() - timestamp > CACHE_DURATION) {
-      localStorage.removeItem(CACHE_KEY);
-      return null;
-    }
-    return data;
-  } catch {
-    return null;
-  }
-};
-
-const setCachedBlogs = (data) => {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({
-      data,
-      timestamp: Date.now()
-    }));
-  } catch {}
-};
-
-// ============================================
-// 2. OPTIMIZED API HOOK
-// ============================================
+// Custom Hooks
 const useBlogs = () => {
-  const [blogs, setBlogs] = useState(() => getCachedBlogs() || []);
-  const [loading, setLoading] = useState(!getCachedBlogs());
+  const [blogs, setBlogs] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchBlogs = useCallback(async (signal) => {
-    const cached = getCachedBlogs();
-    if (cached) {
-      setBlogs(cached);
-      setLoading(false);
-      return;
-    }
-
+  const fetchBlogs = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await axios.get(
-        "https://internship-resume.onrender.com/api/blogs?limit=50",
-        { signal }
-      );
+      const response = await axios.get("https://internship-resume.onrender.com/api/blogs");
 
       if (response.data.success) {
-        const blogData = response.data.blogs;
-        setBlogs(blogData);
-        setCachedBlogs(blogData);
+        setBlogs(response.data.blogs);
       } else {
         throw new Error("Failed to fetch blogs");
       }
     } catch (error) {
-      if (error.name !== "AbortError") {
-        console.error("Error fetching blogs:", error);
-        setError(error.message || "Failed to load blogs");
-      }
+      console.error("Error fetching blogs:", error);
+      setError(error.message || "Failed to load blogs");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    const abortController = new AbortController();
-    fetchBlogs(abortController.signal);
-    return () => abortController.abort();
+    fetchBlogs();
   }, [fetchBlogs]);
 
-  return { blogs, loading, error, refetch: () => fetchBlogs() };
+  return { blogs, loading, error, refetch: fetchBlogs };
 };
 
-// ============================================
-// 3. MEMOIZED SELECTORS
-// ============================================
 const useFilteredBlogs = (blogs, searchTerm, selectedTag) => {
   return useMemo(() => {
-    let filtered = blogs;
-    
-    if (selectedTag === "All" && !searchTerm.trim()) {
-      return filtered;
-    }
-
-    filtered = [...blogs];
+    let filtered = [...blogs];
 
     if (selectedTag !== "All") {
       filtered = filtered.filter(
-        (blog) => blog.tags && blog.tags.includes(selectedTag)
+        (blog) => blog.tags && blog.tags.includes(selectedTag),
       );
     }
 
@@ -126,7 +76,7 @@ const useFilteredBlogs = (blogs, searchTerm, selectedTag) => {
           blog.title.toLowerCase().includes(searchLower) ||
           blog.excerpt?.toLowerCase().includes(searchLower) ||
           blog.content?.toLowerCase().includes(searchLower) ||
-          blog.tags?.some((tag) => tag.toLowerCase().includes(searchLower))
+          blog.tags?.some((tag) => tag.toLowerCase().includes(searchLower)),
       );
     }
 
@@ -137,20 +87,16 @@ const useFilteredBlogs = (blogs, searchTerm, selectedTag) => {
 const useTags = (blogs) => {
   return useMemo(() => {
     const tagsSet = new Set();
-    for (const blog of blogs) {
-      if (blog.tags?.length) {
-        for (const tag of blog.tags) {
-          tagsSet.add(tag);
-        }
+    blogs.forEach((blog) => {
+      if (blog.tags && Array.isArray(blog.tags)) {
+        blog.tags.forEach((tag) => tagsSet.add(tag));
       }
-    }
+    });
     return ["All", ...Array.from(tagsSet).sort()];
   }, [blogs]);
 };
 
-// ============================================
-// 4. UTILITY FUNCTIONS
-// ============================================
+// Utility Functions
 const getRelativeTime = (date) => {
   const now = new Date();
   const published = new Date(date);
@@ -159,7 +105,8 @@ const getRelativeTime = (date) => {
   if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
   if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
   if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  if (diffInSeconds < 604800)
+    return `${Math.floor(diffInSeconds / 86400)}d ago`;
   return `${Math.floor(diffInSeconds / 604800)}w ago`;
 };
 
@@ -172,12 +119,8 @@ const getReadingTime = (content) => {
 
 const getRandomNumber = (max) => Math.floor(Math.random() * max);
 
-// ============================================
-// 5. COMPONENTS
-// ============================================
-
-// Loading Skeleton
-const LoadingSkeleton = React.memo(() => (
+// Components
+const LoadingSkeleton = () => (
   <div className="space-y-4 sm:space-y-6">
     {[1, 2, 3].map((i) => (
       <div key={i} className="animate-pulse">
@@ -204,10 +147,9 @@ const LoadingSkeleton = React.memo(() => (
       </div>
     ))}
   </div>
-));
+);
 
-// Empty State
-const EmptyState = React.memo(() => (
+const EmptyState = () => (
   <div className="py-12 sm:py-16 text-center">
     <div className="mx-auto mb-4 flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-pink-100">
       <BookOpen size={28} className="text-purple-600" />
@@ -219,10 +161,9 @@ const EmptyState = React.memo(() => (
       Try different search or topic
     </p>
   </div>
-));
+);
 
-// Blog Card
-const BlogCard = React.memo(({ blog, onTagClick, onLike }) => {
+const BlogCard = ({ blog, onTagClick, onLike, onSave, onShare }) => {
   const navigate = useNavigate();
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -236,6 +177,7 @@ const BlogCard = React.memo(({ blog, onTagClick, onLike }) => {
   const handleSave = (e) => {
     e.stopPropagation();
     setSaved(!saved);
+    onSave?.(blog._id, !saved);
   };
 
   const handleShare = async (e) => {
@@ -251,6 +193,7 @@ const BlogCard = React.memo(({ blog, onTagClick, onLike }) => {
         console.error("Share failed:", err);
       }
     }
+    onShare?.(blog._id);
   };
 
   return (
@@ -258,6 +201,7 @@ const BlogCard = React.memo(({ blog, onTagClick, onLike }) => {
       onClick={() => navigate(`/blog/${blog._id}`)}
       className="group relative rounded-xl sm:rounded-2xl border border-gray-100 bg-white p-4 sm:p-6 transition-all duration-300 hover:border-purple-200 hover:shadow-xl hover:shadow-purple-100/30 cursor-pointer"
     >
+      {/* Author Section */}
       <div className="mb-3 sm:mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2 sm:gap-3">
           {blog.author?.profilePic ? (
@@ -295,14 +239,17 @@ const BlogCard = React.memo(({ blog, onTagClick, onLike }) => {
         </button>
       </div>
 
+      {/* Title */}
       <h2 className="mb-1.5 sm:mb-2 text-base sm:text-xl font-bold leading-tight text-gray-900 transition group-hover:text-purple-600 line-clamp-2">
         {blog.title}
       </h2>
 
+      {/* Excerpt */}
       <p className="mb-3 sm:mb-4 text-xs sm:text-sm leading-relaxed text-gray-600 line-clamp-2">
         {blog.excerpt || blog.content?.substring(0, 120)}...
       </p>
 
+      {/* Tags */}
       {blog.tags && blog.tags.length > 0 && (
         <div className="mb-3 sm:mb-4 flex flex-wrap gap-1 sm:gap-1.5">
           {blog.tags.slice(0, 3).map((tag) => (
@@ -326,6 +273,7 @@ const BlogCard = React.memo(({ blog, onTagClick, onLike }) => {
         </div>
       )}
 
+      {/* Engagement Bar */}
       <div className="flex items-center gap-4 sm:gap-6 pt-2 border-t border-gray-100">
         <button
           className="flex items-center gap-1 text-[10px] sm:text-xs text-gray-500 transition hover:text-red-500"
@@ -357,11 +305,11 @@ const BlogCard = React.memo(({ blog, onTagClick, onLike }) => {
       </div>
     </article>
   );
-});
+};
 
-// Hero Section
-const HeroSection = React.memo(({ searchTerm, onSearchChange }) => (
+const HeroSection = ({ searchTerm, onSearchChange }) => (
   <div className="relative overflow-hidden bg-gradient-to-br from-purple-600 via-purple-500 to-pink-600">
+    {/* Animated Background */}
     <div className="absolute inset-0 opacity-20">
       <div className="absolute top-0 -left-4 w-72 h-72 bg-white rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
       <div className="absolute top-0 -right-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse delay-1000"></div>
@@ -384,6 +332,7 @@ const HeroSection = React.memo(({ searchTerm, onSearchChange }) => (
           Discover stories, insights, and perspectives from amazing writers
         </p>
 
+        {/* Search Bar */}
         <div className="mx-auto mt-6 sm:mt-8 max-w-md sm:max-w-lg">
           <div className="relative group">
             <Search className="absolute left-3 sm:left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 transition group-focus-within:text-purple-500" />
@@ -399,10 +348,9 @@ const HeroSection = React.memo(({ searchTerm, onSearchChange }) => (
       </div>
     </div>
   </div>
-));
+);
 
-// Filter Bar
-const FilterBar = React.memo(({ tags, selectedTag, onTagSelect }) => {
+const FilterBar = ({ tags, selectedTag, onTagSelect }) => {
   const [showAllTags, setShowAllTags] = useState(false);
   const visibleTags = showAllTags ? tags : tags.slice(0, 8);
 
@@ -442,14 +390,13 @@ const FilterBar = React.memo(({ tags, selectedTag, onTagSelect }) => {
       </div>
     </div>
   );
-});
+};
 
-// Trending Sidebar
-const TrendingSidebar = React.memo(({ blogs, onBlogClick }) => (
+const TrendingSidebar = ({ blogs, onBlogClick }) => (
   <div className="rounded-xl sm:rounded-2xl border border-gray-100 bg-white p-4 sm:p-5 transition hover:shadow-md">
     <div className="mb-3 sm:mb-4 flex items-center gap-2">
       <div className="rounded-lg bg-gradient-to-br from-orange-500 to-red-500 p-1.5">
-        <TrendingUp size={12} className="text-white" />
+        <Flame size={12} className="text-white" />
       </div>
       <h3 className="text-sm sm:text-base font-bold text-gray-900">
         🔥 Trending Now
@@ -482,10 +429,9 @@ const TrendingSidebar = React.memo(({ blogs, onBlogClick }) => (
       ))}
     </div>
   </div>
-));
+);
 
-// Topics Sidebar
-const TopicsSidebar = React.memo(({ tags, selectedTag, onTagSelect }) => (
+const TopicsSidebar = ({ tags, selectedTag, onTagSelect }) => (
   <div className="rounded-xl sm:rounded-2xl border border-gray-100 bg-white p-4 sm:p-5 transition hover:shadow-md">
     <div className="mb-3 sm:mb-4 flex items-center gap-2">
       <div className="rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 p-1.5">
@@ -511,10 +457,9 @@ const TopicsSidebar = React.memo(({ tags, selectedTag, onTagSelect }) => (
       ))}
     </div>
   </div>
-));
+);
 
-// Write CTA
-const WriteCTA = React.memo(() => {
+const WriteCTA = () => {
   const navigate = useNavigate();
 
   return (
@@ -538,10 +483,9 @@ const WriteCTA = React.memo(() => {
       </div>
     </div>
   );
-});
+};
 
-// Stats Sidebar
-const StatsSidebar = React.memo(({ blogs, tags }) => {
+const StatsSidebar = ({ blogs, tags }) => {
   const uniqueAuthors = new Set(blogs.map((b) => b.author?._id)).size;
 
   return (
@@ -581,10 +525,9 @@ const StatsSidebar = React.memo(({ blogs, tags }) => {
       </div>
     </div>
   );
-});
+};
 
-// Mobile Filter Drawer
-const MobileFilterDrawer = React.memo(({
+const MobileFilterDrawer = ({
   tags,
   selectedTag,
   onTagSelect,
@@ -599,7 +542,7 @@ const MobileFilterDrawer = React.memo(({
       <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[80vh] overflow-y-auto animate-slide-up">
         <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between">
           <h3 className="font-semibold text-gray-900">Filter by Topic</h3>
-          <button onClick={onClose} className="p-1 rounded-full bg-gray-100 hover:bg-gray-200 transition">
+          <button onClick={onClose} className="p-1 rounded-full bg-gray-100">
             <X size={18} />
           </button>
         </div>
@@ -615,7 +558,7 @@ const MobileFilterDrawer = React.memo(({
                 className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
                   selectedTag === tag
                     ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    : "bg-gray-100 text-gray-700"
                 }`}
               >
                 {tag === "All" ? "✨ All" : `#${tag}`}
@@ -626,44 +569,37 @@ const MobileFilterDrawer = React.memo(({
       </div>
     </div>
   );
-});
+};
 
-// ============================================
-// 6. MAIN COMPONENT
-// ============================================
+// Main Component
 const HomePage = () => {
   const { blogs, loading, error } = useBlogs();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTag, setSelectedTag] = useState("All");
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-  const [page, setPage] = useState(1);
-  const ITEMS_PER_PAGE = 10;
 
   const filteredBlogs = useFilteredBlogs(blogs, searchTerm, selectedTag);
   const allTags = useTags(blogs);
-
-  const paginatedBlogs = useMemo(() => {
-    const end = page * ITEMS_PER_PAGE;
-    return filteredBlogs.slice(0, end);
-  }, [filteredBlogs, page]);
-
-  const hasMore = paginatedBlogs.length < filteredBlogs.length;
-
-  const handleLoadMore = useCallback(() => {
-    setPage(p => p + 1);
-  }, []);
-
-  useEffect(() => {
-    setPage(1);
-  }, [searchTerm, selectedTag]);
 
   const handleTagSelect = useCallback((tag) => {
     setSelectedTag(tag);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
+  const handleBlogClick = useCallback((blogId) => {
+    console.log("Blog clicked:", blogId);
+  }, []);
+
   const handleLike = useCallback(async (blogId, isLiked) => {
     console.log("Like toggled:", blogId, isLiked);
+  }, []);
+
+  const handleSave = useCallback(async (blogId, isSaved) => {
+    console.log("Save toggled:", blogId, isSaved);
+  }, []);
+
+  const handleShare = useCallback((blogId) => {
+    console.log("Share clicked:", blogId);
   }, []);
 
   if (error) {
@@ -676,7 +612,7 @@ const HomePage = () => {
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm sm:text-base hover:bg-purple-700 transition"
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm sm:text-base"
           >
             Try Again
           </button>
@@ -691,11 +627,13 @@ const HomePage = () => {
 
       <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-10 lg:py-12 lg:px-8">
         <div className="lg:flex lg:gap-8 lg:gap-10">
+          {/* Main Feed */}
           <main className="flex-1 min-w-0">
+            {/* Mobile Filter Button */}
             <div className="lg:hidden mb-4">
               <button
                 onClick={() => setIsMobileFilterOpen(true)}
-                className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-purple-300 transition"
+                className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700"
               >
                 <Filter size={16} />
                 Filter by Topic
@@ -713,40 +651,30 @@ const HomePage = () => {
               onTagSelect={handleTagSelect}
             />
 
-            {loading && paginatedBlogs.length === 0 ? (
+            {loading ? (
               <LoadingSkeleton />
-            ) : paginatedBlogs.length === 0 ? (
+            ) : filteredBlogs.length === 0 ? (
               <EmptyState />
             ) : (
-              <>
-                <div className="space-y-4 sm:space-y-6">
-                  {paginatedBlogs.map((blog) => (
-                    <BlogCard
-                      key={blog._id}
-                      blog={blog}
-                      onTagClick={handleTagSelect}
-                      onLike={handleLike}
-                    />
-                  ))}
-                </div>
-
-                {hasMore && (
-                  <div className="mt-6 sm:mt-8 text-center">
-                    <button
-                      onClick={handleLoadMore}
-                      className="px-6 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 transition shadow-lg shadow-purple-200"
-                    >
-                      Load More Articles
-                    </button>
-                  </div>
-                )}
-              </>
+              <div className="space-y-4 sm:space-y-6">
+                {filteredBlogs.map((blog) => (
+                  <BlogCard
+                    key={blog._id}
+                    blog={blog}
+                    onTagClick={handleTagSelect}
+                    onLike={handleLike}
+                    onSave={handleSave}
+                    onShare={handleShare}
+                  />
+                ))}
+              </div>
             )}
           </main>
 
+          {/* Sidebar - Desktop Only */}
           <aside className="hidden lg:block lg:w-80">
             <div className="sticky top-8 space-y-6">
-              <TrendingSidebar blogs={blogs} onBlogClick={handleTagSelect} />
+              <TrendingSidebar blogs={blogs} onBlogClick={handleBlogClick} />
               <TopicsSidebar
                 tags={allTags}
                 selectedTag={selectedTag}
@@ -759,6 +687,7 @@ const HomePage = () => {
         </div>
       </div>
 
+      {/* Mobile Filter Drawer */}
       <MobileFilterDrawer
         tags={allTags}
         selectedTag={selectedTag}
@@ -767,10 +696,15 @@ const HomePage = () => {
         onClose={() => setIsMobileFilterOpen(false)}
       />
 
-      <style>{`
+      {/* Add animation styles */}
+      <style jsx>{`
         @keyframes slide-up {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
+          from {
+            transform: translateY(100%);
+          }
+          to {
+            transform: translateY(0);
+          }
         }
         .animate-slide-up {
           animation: slide-up 0.3s ease-out;
